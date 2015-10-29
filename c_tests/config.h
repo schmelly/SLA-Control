@@ -9,9 +9,10 @@
 #define CONFIG_H_
 
 #include "math.h"
+#include "fixedpoint_math.h"
 
-#define SEGMENT_LENGTH 50.0f
-#define MAX_STEPS_PER_SEGMENT 200
+#define SEGMENT_LENGTH float2Fixed(50.0f)
+#define MAX_STEPS_PER_SEGMENT float2Fixed(200)
 
 #define DISTANCE_XY_PLANE 200.0f
 #define DISTANCE_AB_GALVOS 50.0f

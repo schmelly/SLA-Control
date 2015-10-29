@@ -83,6 +83,11 @@ int32_t q_div(int32_t a, int32_t b) {
   return result;
 }
 
+int32_t q_sq(int32_t a) {
+
+  return q_mul(a, a);
+}
+
 int32_t arctan_pade(int32_t x) {
 
   //3.f * x / (x * x + 3.f);
