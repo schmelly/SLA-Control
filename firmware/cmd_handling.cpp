@@ -22,15 +22,20 @@ void onMove();
 void onLinearMove(String p);
 void onZMove(String p);
 void onComment();
+void onArbitraryGCode();
 void onUnknownCmd();
 void onLaser();
 
 void setupCmdHandling() {
 
-  sCmd.addCommand("G1", onMove);
-  sCmd.addCommand("L", onLaser);
-  sCmd.addCommand(";", onComment);
-  sCmd.addDefaultHandler(onUnknownCmd);
+//  sCmd.addCommand("G1", onMove);
+//  sCmd.addCommand("G", onArbitraryGCode);
+//  sCmd.addCommand("M110", onArbitraryGCode);
+//  sCmd.addCommand("M105", onArbitraryGCode);
+//  sCmd.addCommand("N", onArbitraryGCode);
+//  sCmd.addCommand("L", onLaser);
+//  sCmd.addCommand(";", onComment);
+//  sCmd.addDefaultHandler(onUnknownCmd);
 }
 
 void sendInitComplete() {
@@ -128,6 +133,11 @@ void onComment() {
     parsedComment += " ";
   }
   currentCmd = COMMENT;
+}
+
+void onArbitraryGCode() {
+
+  currentCmd = ARBITRARY_GCODE;
 }
 
 void onUnknownCmd() {

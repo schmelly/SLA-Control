@@ -4,6 +4,10 @@
 #include "state_handling.h"
 #include "stepper.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 //The setup function is called once at startup of the sketch
 void setup() {
 
@@ -21,3 +25,7 @@ void loop() {
 //delay(1000);
   performStep();
 }
+
+#ifdef __cplusplus
+}
+#endif

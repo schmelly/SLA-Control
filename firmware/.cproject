@@ -34,6 +34,7 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/firmware/Libraries/SerialCommand}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/firmware/Libraries/SPI}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/firmware/Libraries/AH_Pololu}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/firmware/include}&quot;"/>
 								</option>
 								<inputType id="it.baeyens.arduino.compiler.c.sketch.input.416831280" name="C Source Files" superClass="it.baeyens.arduino.compiler.c.sketch.input"/>
 							</tool>

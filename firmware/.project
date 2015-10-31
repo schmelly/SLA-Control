@@ -27,6 +27,11 @@
 	</natures>
 	<linkedResources>
 		<link>
+			<name>include</name>
+			<type>2</type>
+			<location>D:/Programme/arduino-1.6.1/hardware/tools/gcc-arm-none-eabi-4.8.3-2014q1/arm-none-eabi/include</location>
+		</link>
+		<link>
 			<name>Libraries/AH_Pololu</name>
 			<type>2</type>
 			<locationURI>ArduinoPivateLibPath/AH_Pololu</locationURI>

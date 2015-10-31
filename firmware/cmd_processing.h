@@ -10,6 +10,14 @@
 
 #include "cmd_handling.h"
 
-void processCommand(enum commands cmd);
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+int processCommand(enum commands cmd);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* CMD_PROCESSING_H_ */

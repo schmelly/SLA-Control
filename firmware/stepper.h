@@ -12,11 +12,14 @@
 #include "AH_Pololu.h"
 
 #ifdef __cplusplus
-
-extern AH_Pololu Stepper;
-
+extern "C" {
 #endif
 
+extern AH_Pololu Stepper;
 void setupStepper();
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* STEPPER_H_ */

@@ -17,20 +17,20 @@ extern "C" {
 /**
  * function declarations
  */
-int32_t xyToAlphaDigit(float x, float y);
-int32_t yToBetaDigit(float y);
+int32_t xyToAlphaDigit(int32_t x, int32_t y);
+int32_t yToBetaDigit(int32_t y);
 
 float digitToAlpha(int x);
 float digitToBeta(int y);
 
-int xyToAlphaDigit2(float x, float y);
-int yToBetaDigit2(float y);
-float xyToAlpha2(float x, float y);
-float yToBeta2(float y);
-int alphaToDigit2(float alpha);
-int betaToDigit2(float beta);
-int angleToDigit2(float angle, float angle_max);
-float arctan_pade2(float x);
+//int xyToAlphaDigit2(float x, float y);
+//int yToBetaDigit2(float y);
+//float xyToAlpha2(float x, float y);
+//float yToBeta2(float y);
+//int alphaToDigit2(float alpha);
+//int betaToDigit2(float beta);
+//int angleToDigit2(float angle, float angle_max);
+//float arctan_pade2(float x);
 
 #ifdef __cplusplus
 }

@@ -66,7 +66,9 @@ void atPollingCmd() {
 
 void atProcessingCmd() {
   //Serial.println("atProcessingCmd");
-  enum commands curCommand = getCurrentCmd();
-  processCommand(curCommand);
   current_state = IDLE;
+  enum commands curCommand = getCurrentCmd();
+  if (processCommand(curCommand)) {
+    Serial.print("ok\n");
+  }
 }

@@ -8,8 +8,12 @@
 #ifndef CMD_HANDLING_H_
 #define CMD_HANDLING_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 enum commands {
-  UNKNOWN, COMMENT, LINEAR_MOVE, Z_MOVE, LASER
+  UNKNOWN, ARBITRARY_GCODE, COMMENT, LINEAR_MOVE, Z_MOVE, LASER
 };
 
 void setupCmdHandling();
@@ -19,5 +23,9 @@ enum commands getCurrentCmd();
 float* getXYCoords();
 float getZCoord();
 int getLaser();
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* CMD_HANDLING_H_ */

@@ -8,6 +8,8 @@
 #ifndef GALVO_MATH_H_
 #define GALVO_MATH_H_
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -15,11 +17,11 @@ extern "C" {
 /**
  * function declarations
  */
-int xyToAlphaDigit(float x, float y);
-int yToBetaDigit(float y);
+int32_t xyToAlphaDigit(int32_t x, int32_t y);
+int32_t yToBetaDigit(int32_t y);
 
-float digitToAlpha(int x);
-float digitToBeta(int y);
+float digitToAlpha(int32_t x);
+float digitToBeta(int32_t y);
 
 #ifdef __cplusplus
 }

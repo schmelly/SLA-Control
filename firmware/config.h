@@ -10,14 +10,14 @@
 
 //#include "math.h"
 
-#define SEGMENT_LENGTH 5000.0f
-#define MAX_STEPS_PER_SEGMENT 200
+#define SEGMENT_LENGTH float2Fixed(5.f)
+#define MAX_STEPS_PER_SEGMENT float2Fixed(33.f)
 
-#define DISTANCE_XY_PLANE 150000.0f
-#define DISTANCE_AB_GALVOS 5000.0f
+#define DISTANCE_XY_PLANE 200.f
+#define DISTANCE_AB_GALVOS 50.f
 
-#define ALPHA_MAX 0.349f
-#define BETA_MAX 0.349f
+#define ALPHA_MAX 0.359f
+#define BETA_MAX 0.359f
 
 #define BITS_DAC 12
 
@@ -34,5 +34,8 @@
 #define STEPS_PER_TURN 200
 #define STEPPING 4
 #define STEPS_PER_MM_Z STEPPING*STEPS_PER_TURN/Z_PITCH
+
+// 5 ms
+#define EXPOSURE_TIME 5*1000
 
 #endif /* CONFIG_H_ */
