@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 enum gCodes {
-  UNKNOWN, G0, G1, M105, M110
+  UNKNOWN, G0, G1, L, M105, M110, S
 };
 
 struct gCode {
@@ -25,10 +25,13 @@ struct gCode {
   float zCoord;
   float eCoord;
   float fCoord;
+  int laserIntensity;
+  int switchLaser;
   int lineNo;
 };
 
 gCode* parseGCodeLine(char* line);
+gCode* getParsedGCode();
 
 #ifdef __cplusplus
 }

@@ -5,7 +5,7 @@
  *      Author: schmelly
  */
 
-#include "Arduino.h"
+//#include "Arduino.h"
 #include "state_handling.h"
 #include "cmd_handling.h"
 #include "cmd_processing.h"
@@ -60,15 +60,16 @@ void atIdle() {
 
 void atPollingCmd() {
   //Serial.println("atPollingCmd");
-  nextCommand();
-  current_state = PROCESSING_CMD;
+  if (nextCommand()) {
+    current_state = PROCESSING_CMD;
+  } else {
+    current_state = IDLE;
+  }
 }
 
 void atProcessingCmd() {
   //Serial.println("atProcessingCmd");
   current_state = IDLE;
-  enum commands curCommand = getCurrentCmd();
-  if (processCommand(curCommand)) {
-    Serial.print("ok\n");
-  }
+  gCode* code = getParsedGCode();
+  processCommand(code);
 }

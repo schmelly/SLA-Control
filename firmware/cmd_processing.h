@@ -9,12 +9,13 @@
 #define CMD_PROCESSING_H_
 
 #include "cmd_handling.h"
+#include "gcode_parser.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-int processCommand(enum commands cmd);
+void processCommand(struct gCode* code);
 
 #ifdef __cplusplus
 }

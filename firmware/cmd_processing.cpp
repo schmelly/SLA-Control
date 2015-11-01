@@ -8,48 +8,59 @@
 #include "cmd_processing.h"
 
 #include <AH_Pololu.h>
+#include <float.h>
+#include <limits.h>
 #include <stdint.h>
 #include <stdio.h>
 
-#include "cmd_handling.h"
+//#include "cmd_handling.h"
 #include "config.h"
 #include "fixedpoint_math.h"
 #include "galvo_math.h"
 #include "spi.h"
 #include "stepper.h"
 
-void handleLinearMove();
-void handleZMove();
-void handleLaser();
+void handleMove(struct gCode* code);
+void handlePrintingMove(struct gCode* code);
+void handleNonPrintingMove(struct gCode* code);
+void handleZMove(struct gCode* code);
+void handleLaser(struct gCode* code);
 void linearMoveHelper(int32_t sX, int32_t sY, int32_t stepsPerSegment);
 
+int laser_intensity = 0;
 float oldX = 0.0f, oldY = 0.0f;
 
-int processCommand(enum commands cmd) {
+void processCommand(struct gCode* code) {
 
-  int result = 0;
+  //printCode(code);
 
-  switch (cmd) {
-  case LINEAR_MOVE:
-    handleLinearMove();
-    result = 1;
+  switch (code->code) {
+  case G0:
+  case G1:
+    handleMove(code);
+    handleZMove(code);
+    Serial.println("ok");
     break;
-  case Z_MOVE:
-    handleZMove();
-    result = 1;
+  case L:
+    handleLaser(code);
+    Serial.println("ok");
     break;
-  case LASER:
-    handleLaser();
-    result = 1;
+  case S:
+    if (code->switchLaser >= 0) {
+      changeLaserValue(laser_intensity);
+    } else {
+      changeLaserValue(0);
+    }
+    Serial.println("ok");
     break;
-  case ARBITRARY_GCODE:
-    result = 1;
+  case M105:
+    Serial.println("ok T:0 B:0");
     break;
-  default:
+  case M110:
+  case UNKNOWN:
+    Serial.println("ok");
     break;
   }
-
-  return result;
 }
 
 int32_t old_sX;
@@ -57,13 +68,26 @@ int32_t old_sY;
 int32_t old_dX;
 int32_t old_dY;
 
-int32_t dots;
+//int32_t dots;
 
-void handleLinearMove() {
+void handleMove(struct gCode* code) {
 
-  float* xy = getXYCoords();
+  if (code->xCoord == -FLT_MAX || code->yCoord == -FLT_MAX) {
+    return;
+  }
 
-  // #########################################
+  if (code->eCoord > 0) {
+    handlePrintingMove(code);
+  } else {
+    handleNonPrintingMove(code);
+  }
+}
+
+void handlePrintingMove(struct gCode* code) {
+
+  float xy[2]; //getXYCoords();
+  xy[0] = code->xCoord;
+  xy[1] = code->yCoord;
 
   int32_t x1 = oldX;
   int32_t y1 = oldY;
@@ -71,12 +95,12 @@ void handleLinearMove() {
   int32_t y2 = float2Fixed(xy[1]);
 
   char msg[100];
-  memset(msg, 0, sizeof(char) * 100);
-  sprintf(msg, "from (%f,%f) to (%f,%f)", fixed2Float(x1), fixed2Float(y1), fixed2Float(x2), fixed2Float(y2));
+  memset(msg, '\0', sizeof(char) * 100);
+  sprintf(msg, "printing from (%f,%f) to (%f,%f)", fixed2Float(x1), fixed2Float(y1), fixed2Float(x2), fixed2Float(y2));
   Serial.println(msg);
 
-  dots = 0;
-  uint32_t start = micros();
+//  dots = 0;
+//  uint32_t start = micros();
 
   int32_t tmp1 = sub32(x1, x2); // (x1 - x2)
   int32_t tmp2 = sub32(y1, y2); // (y1 - y2)
@@ -129,7 +153,7 @@ void handleLinearMove() {
   old_dX = xyToAlphaDigit(old_sX, old_sY);
   old_dY = yToBetaDigit(old_sY);
 
-  //changeLaserValue(196);
+  changeLaserValue(laser_intensity);
 
   for (i = 0; i < numSegmentsCoords; i += 2) {
 
@@ -149,19 +173,38 @@ void handleLinearMove() {
     linearMoveHelper(x2, y2, stepsPerSegment);
   }
 
+  changeLaserValue(0);
+  delay(1);
+
   oldX = x2;
   oldY = y2;
 
-  //changeLaserValue(0);
+//  uint32_t stop = micros();
+//  uint32_t time = stop - start;
+//
+//  memset(msg, 0, sizeof(char) * 100);
+//  sprintf(msg, "%ld micros total, %ld dots total, %ld micros per dot", time, dots, time / dots);
+//  Serial.println(msg);
+}
 
-  // #########################################
+void handleNonPrintingMove(struct gCode* code) {
 
-  uint32_t stop = micros();
-  uint32_t time = stop - start;
+  int32_t x = float2Fixed(code->xCoord);
+  int32_t y = float2Fixed(code->yCoord);
 
-  memset(msg, 0, sizeof(char) * 100);
-  sprintf(msg, "%ld micros total, %ld dots total, %ld micros per dot", time, dots, time / dots);
+  int32_t dX = xyToAlphaDigit(x, y);
+  int32_t dY = yToBetaDigit(y);
+
+  changeMotorValues(dX, dY);
+  delay(1);
+
+  char msg[100];
+  memset(msg, '\0', sizeof(char) * 100);
+  sprintf(msg, "moving from (%f,%f) to (%f,%f)", fixed2Float(oldX), fixed2Float(oldY), fixed2Float(x), fixed2Float(y));
   Serial.println(msg);
+
+  oldX = x;
+  oldY = y;
 }
 
 void linearMoveHelper(int32_t sX, int32_t sY, int32_t stepsPerSegment) {
@@ -191,7 +234,7 @@ void linearMoveHelper(int32_t sX, int32_t sY, int32_t stepsPerSegment) {
     if (old_dX != dX || old_dY != dY) {
       //changeMotorValues(dX, dY);
       //printf("%d|%d\n", dX, dY);
-      dots++;
+      //dots++;
     }
 
     old_dX = dX;
@@ -206,18 +249,37 @@ void linearMoveHelper(int32_t sX, int32_t sY, int32_t stepsPerSegment) {
   }
 }
 
-void handleZMove() {
+void handleZMove(struct gCode* code) {
 
-  float zCoord = getZCoord();
+  if (code->zCoord == -FLT_MAX) {
+    return;
+  }
+
+  float zCoord = code->zCoord;
   int steps = (int) (STEPS_PER_MM_Z * zCoord);
 
   Stepper.sleepOFF();
   Stepper.move(steps);
   Stepper.sleepON();
+
+  char msg[100];
+  memset(msg, '\0', sizeof(char) * 100);
+  sprintf(msg, "zMove: %f mm | %d steps", zCoord, steps);
+  Serial.println(msg);
 }
 
-void handleLaser() {
+void handleLaser(struct gCode* code) {
 
-  int value = getLaser();
-  changeLaserValue(value);
+  if (code->laserIntensity == INT_MIN) {
+    return;
+  }
+
+  laser_intensity = code->laserIntensity;
+  //int value = code->laserIntensity;
+  //changeLaserValue(value);
+
+  char msg[100];
+  memset(msg, '\0', sizeof(char) * 100);
+  sprintf(msg, "laser intensity: %d", laser_intensity);
+  Serial.println(msg);
 }

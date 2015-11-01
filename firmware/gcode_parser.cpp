@@ -14,7 +14,7 @@
 void reset();
 
 enum parser_states {
-  PARSE_TOKEN, NEWLINE, LINE_NO, GCODE, MCODE, X_COORD, Y_COORD, Z_COORD, E_COORD, F_COORD, COMMENT
+  PARSE_TOKEN, NEWLINE, LINE_NO, GCODE, MCODE, X_COORD, Y_COORD, Z_COORD, E_COORD, F_COORD, LASER_INTENSITY, SWITCH_LASER, COMMENT
 };
 
 //struct gCode {
@@ -26,7 +26,7 @@ enum parser_states {
 //  float fCoord;
 //  int lineNo;
 //};
-struct gCode g = { UNKNOWN, '\0', INT_MIN, FLT_MIN, FLT_MIN, FLT_MIN, FLT_MIN, FLT_MIN, INT_MIN };
+struct gCode g = { UNKNOWN, '\0', INT_MIN, -FLT_MAX, -FLT_MAX, -FLT_MAX, -FLT_MAX, -FLT_MAX, INT_MIN, 0, INT_MIN };
 
 gCode* parseGCodeLine(char* line) {
 
@@ -68,6 +68,12 @@ gCode* parseGCodeLine(char* line) {
       case 'F':
         curState = F_COORD;
         break;
+      case 'L':
+        curState = LASER_INTENSITY;
+        break;
+      case 'S':
+        curState = SWITCH_LASER;
+        break;
       case ';':
         curState = COMMENT;
         break;
@@ -99,6 +105,8 @@ gCode* parseGCodeLine(char* line) {
       ///////////////////////
     case GCODE:
       code = (int) strtol(line, &pEnd, 10);
+      g.gCodeCharacter = 'G';
+      g.gCodeDigit = code;
       switch (code) {
       case 0:
         g.code = G0;
@@ -118,6 +126,8 @@ gCode* parseGCodeLine(char* line) {
       ///////////////////////
     case MCODE:
       code = (int) strtol(line, &pEnd, 10);
+      g.gCodeCharacter = 'M';
+      g.gCodeDigit = code;
       switch (code) {
       case 105:
         g.code = M105;
@@ -175,6 +185,22 @@ gCode* parseGCodeLine(char* line) {
       ///////////////////////
 
       ///////////////////////
+    case LASER_INTENSITY:
+      g.laserIntensity = (int) strtol(line, &pEnd, 10);
+      line = pEnd;
+      curState = PARSE_TOKEN;
+      break;
+      ///////////////////////
+
+      ///////////////////////
+    case SWITCH_LASER:
+      g.switchLaser = (int) strtol(line, &pEnd, 10);
+      line = pEnd;
+      curState = PARSE_TOKEN;
+      break;
+      ///////////////////////
+
+      ///////////////////////
     case COMMENT:
       do {
         line++;
@@ -189,14 +215,20 @@ gCode* parseGCodeLine(char* line) {
   return &g;
 }
 
+gCode* getParsedGCode() {
+  return &g;
+}
+
 void reset() {
   g.code = UNKNOWN;
   g.gCodeCharacter = '\0';
   g.gCodeDigit = INT_MIN;
-  g.xCoord = FLT_MIN;
-  g.yCoord = FLT_MIN;
-  g.zCoord = FLT_MIN;
-  g.eCoord = FLT_MIN;
-  g.fCoord = FLT_MIN;
+  g.xCoord = -FLT_MAX;
+  g.yCoord = -FLT_MAX;
+  g.zCoord = -FLT_MAX;
+  g.eCoord = -FLT_MAX;
+  g.fCoord = -FLT_MAX;
+  g.laserIntensity = INT_MIN;
+  g.switchLaser = 0;
   g.lineNo = INT_MIN;
 }

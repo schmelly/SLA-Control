@@ -15,7 +15,7 @@ void setup() {
 
   setupStepper();
   setupSPI();
-  setupCmdHandling();
+  //setupCmdHandling();
   setupStateHandling();
 }
 

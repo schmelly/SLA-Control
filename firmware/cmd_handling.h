@@ -12,17 +12,17 @@
 extern "C" {
 #endif
 
-enum commands {
-  UNKNOWN, ARBITRARY_GCODE, COMMENT, LINEAR_MOVE, Z_MOVE, LASER
-};
-
-void setupCmdHandling();
+//enum commands {
+//  UNKNOWN, ARBITRARY_GCODE, COMMENT, LINEAR_MOVE, Z_MOVE, LASER
+//};
+//
+//void setupCmdHandling();
 void sendInitComplete();
-void nextCommand();
-enum commands getCurrentCmd();
-float* getXYCoords();
-float getZCoord();
-int getLaser();
+int nextCommand();
+//enum commands getCurrentCmd();
+//float* getXYCoords();
+//float getZCoord();
+//int getLaser();
 
 #ifdef __cplusplus
 }
