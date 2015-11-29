@@ -1,6 +1,6 @@
 #include "Arduino.h"
 #include "spi.h"
-#include "cmd_handling.h"
+#include "cmd_processing.h"
 #include "state_handling.h"
 #include "stepper.h"
 
@@ -15,7 +15,7 @@ void setup() {
 
   setupStepper();
   setupSPI();
-  //setupCmdHandling();
+  setupCommandProcessing();
   setupStateHandling();
 }
 

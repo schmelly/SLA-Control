@@ -103,14 +103,14 @@ int nextCommand() {
     }
   }
 
-  char msg[128];
-
-  memset(msg, '\0', sizeof(char) * 128);
-  sprintf(msg, "lineBuffer: %s", lineBuffer);
-  Serial.println(msg);
-
+//  char msg[128];
+//
+//  memset(msg, '\0', sizeof(char) * 128);
+//  sprintf(msg, "lineBuffer: %s", lineBuffer);
+//  Serial.println(msg);
+//
   gCode* code = parseGCodeLine(lineBuffer);
-  printCode(code);
+//  printCode(code);
 
   return 1;
 }

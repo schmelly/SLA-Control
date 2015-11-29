@@ -15,6 +15,7 @@
 extern "C" {
 #endif
 
+void setupCommandProcessing();
 void processCommand(struct gCode* code);
 
 #ifdef __cplusplus

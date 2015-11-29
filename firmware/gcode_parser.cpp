@@ -108,11 +108,17 @@ gCode* parseGCodeLine(char* line) {
       g.gCodeCharacter = 'G';
       g.gCodeDigit = code;
       switch (code) {
+      case 1:
+        g.code = G1;
+        break;
       case 0:
         g.code = G0;
         break;
-      case 1:
-        g.code = G1;
+      case 28:
+        g.code = G28;
+        break;
+      case 92:
+        g.code = G92;
         break;
       default:
         g.code = UNKNOWN;
@@ -186,6 +192,8 @@ gCode* parseGCodeLine(char* line) {
 
       ///////////////////////
     case LASER_INTENSITY:
+      g.code = L;
+      g.gCodeCharacter = 'L';
       g.laserIntensity = (int) strtol(line, &pEnd, 10);
       line = pEnd;
       curState = PARSE_TOKEN;
@@ -194,6 +202,8 @@ gCode* parseGCodeLine(char* line) {
 
       ///////////////////////
     case SWITCH_LASER:
+      g.code = S;
+      g.gCodeCharacter = 'S';
       g.switchLaser = (int) strtol(line, &pEnd, 10);
       line = pEnd;
       curState = PARSE_TOKEN;
