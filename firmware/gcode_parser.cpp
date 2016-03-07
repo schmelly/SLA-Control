@@ -14,7 +14,7 @@
 void reset();
 
 enum parser_states {
-  PARSE_TOKEN, NEWLINE, LINE_NO, GCODE, MCODE, X_COORD, Y_COORD, Z_COORD, E_COORD, F_COORD, LASER_INTENSITY, SWITCH_LASER, COMMENT
+  PARSE_TOKEN, NEWLINE, LINE_NO, GCODE, MCODE, X_COORD, Y_COORD, Z_COORD, E_COORD, F_COORD, LASER_INTENSITY, SWITCH_LASER, P_VALUE, COMMENT
 };
 
 //struct gCode {
@@ -26,7 +26,7 @@ enum parser_states {
 //  float fCoord;
 //  int lineNo;
 //};
-struct gCode g = { UNKNOWN, '\0', INT_MIN, -FLT_MAX, -FLT_MAX, -FLT_MAX, -FLT_MAX, -FLT_MAX, INT_MIN, 0, INT_MIN };
+struct gCode g = { UNKNOWN, '\0', INT_MIN, -FLT_MAX, -FLT_MAX, -FLT_MAX, -FLT_MAX, -FLT_MAX, INT_MIN, 0, INT_MIN, INT_MIN };
 
 gCode* parseGCodeLine(char* line) {
 
@@ -73,6 +73,9 @@ gCode* parseGCodeLine(char* line) {
         break;
       case 'S':
         curState = SWITCH_LASER;
+        break;
+      case 'P':
+        curState = P_VALUE;
         break;
       case ';':
         curState = COMMENT;
@@ -135,6 +138,9 @@ gCode* parseGCodeLine(char* line) {
       g.gCodeCharacter = 'M';
       g.gCodeDigit = code;
       switch (code) {
+      case 0:
+        g.code = M0;
+        break;
       case 105:
         g.code = M105;
         break;
@@ -211,6 +217,14 @@ gCode* parseGCodeLine(char* line) {
       ///////////////////////
 
       ///////////////////////
+    case P_VALUE:
+      g.pValue = (int) strtol(line, &pEnd, 10);
+      line = pEnd;
+      curState = PARSE_TOKEN;
+      break;
+      ///////////////////////
+
+      ///////////////////////
     case COMMENT:
       do {
         line++;
@@ -241,4 +255,5 @@ void reset() {
   g.laserIntensity = INT_MIN;
   g.switchLaser = 0;
   g.lineNo = INT_MIN;
+  g.pValue = INT_MIN;
 }

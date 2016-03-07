@@ -27,6 +27,7 @@ void handleZMove(struct gCode* code);
 void handleHome(struct gCode* code);
 void handleSetPosition(struct gCode* code);
 void handleLaser(struct gCode* code);
+void sleepM0(struct gCode* code);
 void linearMoveHelper(int32_t sX, int32_t sY, int32_t stepsPerSegment);
 
 int laser_intensity = 0;
@@ -72,6 +73,10 @@ void processCommand(struct gCode* code) {
     } else {
       changeLaserValue(0);
     }
+    Serial.println("ok");
+    break;
+  case M0:
+    sleepM0(code);
     Serial.println("ok");
     break;
   case M105:
@@ -371,6 +376,13 @@ void handleHome(struct gCode* code) {
 //  memset(msg, '\0', sizeof(char) * 100);
 //  sprintf(msg, "posZ: %f | stepsZ: %d | home %d steps", posZ, stepsZ, steps);
 //  Serial.println(msg);
+}
+
+void sleepM0(struct gCode* code) {
+
+  if (code->pValue != INT_MIN) {
+    delay(code->pValue);
+  }
 }
 
 void handleSetPosition(struct gCode* code) {

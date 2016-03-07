@@ -109,7 +109,8 @@ int nextCommand() {
 //  sprintf(msg, "lineBuffer: %s", lineBuffer);
 //  Serial.println(msg);
 //
-  gCode* code = parseGCodeLine(lineBuffer);
+//  gCode* code =
+  parseGCodeLine(lineBuffer);
 //  printCode(code);
 
   return 1;
