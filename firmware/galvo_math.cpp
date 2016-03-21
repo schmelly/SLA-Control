@@ -64,12 +64,8 @@ int32_t yToBetaDigit(int32_t y) {
 
   int32_t beta = yToBeta(y);
 
-  serialPrintln("beta: %ld | %.4f", beta, fixed2Float(beta));
-
   result = betaToDigit(beta, y);
   result = (int32_t) fixed2Float(add32(result, C05));
-
-  serialPrintln("yToBetaDigit: %ld | %ld", add32(result, C05), result);
 
   return result;
 }

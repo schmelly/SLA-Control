@@ -20,10 +20,10 @@
 #define DISTANCE_XY_PLANE 366.5f
 #define DISTANCE_AB_GALVOS 9.f
 
-#define X_MAX 61.2f
-#define X_MIN -56.7f
-#define Y_MAX 90.6f
-#define Y_MIN -100.f
+#define X_MAX 61.3f
+#define X_MIN -57.0f
+#define Y_MAX 91.4f
+#define Y_MIN -100.5f
 
 //#define INVERT_X
 #define INVERT_Y
