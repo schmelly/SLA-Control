@@ -1,0 +1,23 @@
+; zero: x:-0.6 y: -1.1 
+
+M503 ;print loaded settings
+
+G0 X0 Y0
+M13 S0
+
+M12 S224
+M13 S1
+G161 X1 ; home xMin
+G162 X1 ; home xMax
+G161 Y1 ; home yMin
+G162 Y1 ; home yMax
+
+M208 X_ ; maxX 57.5+0.6 = 58.1
+M208 S1 X_ ; minX 55.3-0.6 = 54.7
+M208 Y_ ; maxY = 89.5+1.1 = 90.6
+M208 S1 Y_ ; minY 99.6-1.1=98.5
+
+M208 S0 X61.2 Y90.6
+M208 S1 X-56.5 Y-99.6
+
+

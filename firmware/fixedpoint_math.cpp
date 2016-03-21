@@ -6,6 +6,7 @@
  */
 
 #include "fixedpoint_math.h"
+#include "Arduino.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -62,7 +63,7 @@ int32_t div32(int32_t a, int32_t b) {
   int32_t result;
   int64_t temp;
 
-  // pre-multiply by the base (Upscale to Q16 so that the result will be in Q8 format)
+  // pre-multiply by the base (Upscale to Q64 so that the result will be in Q32 format)
   temp = (int64_t) a << Qf;
 
   // Rounding: mid values are rounded up (down for negative values).
@@ -83,6 +84,9 @@ int32_t sq32(int32_t a) {
 
 int32_t sqrt32(int32_t x) {
 
+//  float tmp = fixed2Float(x);
+//  return float2Fixed(sqrt(tmp));
+
   uint32_t testDiv = 0;
   uint32_t root = 0;
   uint32_t remHi = 0;
@@ -102,6 +106,9 @@ int32_t sqrt32(int32_t x) {
 }
 
 int32_t arctan_pade32(int32_t a) {
+
+//  float tmp = fixed2Float(a);
+//  return float2Fixed(atan(tmp));
 
   //3.f * x / (x * x + 3.f);
   int32_t tmp1 = mul32(C3, a);

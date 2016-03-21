@@ -5,6 +5,7 @@
  *      Author: schmelly
  */
 #include "spi.h"
+#include "config.h"
 #include <SPI.h>
 
 #define CS_MOTORS 4
@@ -34,11 +35,18 @@ void setupSPI() {
   SPI.setDataMode(CS_LASER, SPI_MODE0);
   SPI.setClockDivider(CS_LASER, SPI_CLOCK_DIV8);
 
-  changeMotorValues(4096 / 2 - 1, 4096 / 2 - 1);
+  changeMotorValues(DAC_ZERO, DAC_ZERO);
   changeLaserValue(0);
 }
 
 void changeMotorValues(int xValue, int yValue) {
+
+#ifdef INVERT_X
+  xValue = DAC_MAX-xValue;
+#endif
+#ifdef INVERT_Y
+  yValue = DAC_MAX-yValue;
+#endif
 
   byte a1 = maskFirstByteA | ((xValue & 0xFF00) >> 8);
   byte a2 = maskSecondByteA & xValue;

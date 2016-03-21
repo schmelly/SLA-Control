@@ -1,4 +1,4 @@
-#include "Arduino.h"
+//#include "Arduino.h"
 #include "spi.h"
 #include "cmd_processing.h"
 #include "state_handling.h"
@@ -13,6 +13,7 @@ void setup() {
 
   Serial.begin(115200);
 
+  setupConfig();
   setupStepper();
   setupSPI();
   setupCommandProcessing();

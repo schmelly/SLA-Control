@@ -9,26 +9,28 @@
 #define CONFIG_H_
 
 #include "math.h"
+#include "fixedpoint_math.h"
+
+#define serialPrintln(...)  do{ char msg[100];  memset(msg, '\0', sizeof(char) * 100); sprintf(msg, __VA_ARGS__);  Serial.println(msg); } while(0);
 
 #define SEGMENT_LENGTH float2Fixed(5.f)
 #define MAX_STEPS_PER_SEGMENT float2Fixed(66.f)
 
-#define DISTANCE_XY_PLANE 240.f
+//#define DISTANCE_XY_PLANE 240.f
+#define DISTANCE_XY_PLANE 366.5f
 #define DISTANCE_AB_GALVOS 9.f
 
-#define X_MAX 40.f
-#define X_MIN -40.f
-
-#define Y_MAX 65.f
-#define Y_MIN -65.f
-
-#define ALPHA_MAX (float)tan(X_MAX/DISTANCE_XY_PLANE)
-#define BETA_MAX (float)tan(Y_MAX/DISTANCE_XY_PLANE)
+#define X_MAX 61.2f
+#define X_MIN -56.7f
+#define Y_MAX 90.6f
+#define Y_MIN -100.f
 
 //#define INVERT_X
 #define INVERT_Y
 
 #define BITS_DAC 12
+#define DAC_MAX ((1 << BITS_DAC) - 1)
+#define DAC_ZERO ((1 << BITS_DAC) / 2 - 1)
 
 //pin definitions
 #define STEPPER_DIR 31
@@ -56,9 +58,47 @@
 #define TANK_X 140.f
 #define TANK_AREA (TANK_X*TANK_Y)
 
-// 0.25 ms
+// 0.15 ms
 #define EXPOSURE_TIME 150
-// 20s
+// 5s
 #define SETTLE_TIME 5000
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+struct Configuration {
+  int configInitialized;
+  //segment related data
+  int32_t segmenthLength;
+  int32_t maxStepsPerSegment;
+  //projection dimensions
+  float distanceXYPlane;
+  float xMax;
+  float xMin;
+  float yMax;
+  float yMin;
+  float alphaMin;
+  float alphaMax;
+  float betaMin;
+  float betaMax;
+  //printing related data
+  float dipDepth;
+  int32_t exposureTime;
+  int32_t settleTime;
+};
+
+extern Configuration config;
+
+void setupConfig();
+void storeConfiguration();
+void loadConfiguration();
+void loadDefaultValues();
+void storeDefaultValues();
+void printLoadedParams();
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* CONFIG_H_ */

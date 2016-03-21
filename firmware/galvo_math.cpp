@@ -6,6 +6,7 @@
  */
 
 #include <stdio.h>
+#include <Arduino.h>
 
 #include "config.h"
 #include "galvo_math.h"
@@ -15,16 +16,21 @@
 extern "C" {
 #endif
 
-#define ALPHA_MAX_F float2Fixed(ALPHA_MAX)
-#define BETA_MAX_F float2Fixed(BETA_MAX)
-#define DAC_MAX_F float2Fixed((float) (1 << BITS_DAC))
+#define DAC_MAX_F float2Fixed(DAC_MAX)
 #define C05 float2Fixed(1.f / 2.f)
 #define C1 float2Fixed(1.f)
 #define C2 float2Fixed(2.f)
-#define DISTANCE_XY_PLANE_F float2Fixed(DISTANCE_XY_PLANE)
 #define DISTANCE_AB_GALVOS_F float2Fixed(DISTANCE_AB_GALVOS)
 
-const int dac_max = 1 << BITS_DAC;
+int32_t distanceXYPlane = float2Fixed(config.distanceXYPlane);
+int32_t xMax = float2Fixed(config.xMax);
+int32_t xMin = float2Fixed(config.xMin);
+int32_t yMax = float2Fixed(config.yMax);
+int32_t yMin = float2Fixed(config.yMin);
+int32_t alphaMin = float2Fixed(config.alphaMin);
+int32_t alphaMax = float2Fixed(config.alphaMax);
+int32_t betaMin = float2Fixed(config.betaMin);
+int32_t betaMax = float2Fixed(config.betaMax);
 
 /**
  * function declarations
@@ -32,24 +38,21 @@ const int dac_max = 1 << BITS_DAC;
 int32_t xyToAlpha(int32_t x, int32_t y);
 int32_t yToBeta(int32_t y);
 
-int32_t alphaToDigit(int32_t alpha);
-int32_t betaToDigit(int32_t beta);
+int32_t alphaToDigit(int32_t alpha, int32_t x);
+int32_t betaToDigit(int32_t beta, int32_t y);
 int32_t angleToDigit(int32_t angle, int32_t angle_max);
 
 /**
  * function definitions
- * TODO fixed point, optimizations
  */
 
 int32_t xyToAlphaDigit(int32_t x, int32_t y) {
-
-  //float alpha = xyToAlpha(x, y);
 
   int32_t result;
 
   int32_t alpha = xyToAlpha(x, y);
 
-  result = alphaToDigit(alpha);
+  result = alphaToDigit(alpha, x);
   result = (int32_t) fixed2Float(add32(result, C05));
 
   return result;
@@ -57,14 +60,16 @@ int32_t xyToAlphaDigit(int32_t x, int32_t y) {
 
 int32_t yToBetaDigit(int32_t y) {
 
-  //float beta = yToBeta(y);
-
   int32_t result;
 
   int32_t beta = yToBeta(y);
 
-  result = betaToDigit(beta);
+  serialPrintln("beta: %ld | %.4f", beta, fixed2Float(beta));
+
+  result = betaToDigit(beta, y);
   result = (int32_t) fixed2Float(add32(result, C05));
+
+  serialPrintln("yToBetaDigit: %ld | %ld", add32(result, C05), result);
 
   return result;
 }
@@ -79,7 +84,7 @@ float digitToAlpha(int32_t x) {
 
   int32_t tmp1 = div32(x_f, DAC_MAX_F);
   int32_t tmp2 = sub32(tmp1, C05);
-  int32_t tmp3 = mul32(mul32(C2, ALPHA_MAX_F), tmp2);
+  int32_t tmp3 = mul32(mul32(C2, alphaMax), tmp2);
 
   result = fixed2Float(tmp3);
 
@@ -96,7 +101,7 @@ float digitToBeta(int32_t y) {
 
   int32_t tmp1 = div32(y_f, DAC_MAX_F);
   int32_t tmp2 = sub32(tmp1, C05);
-  int32_t tmp3 = mul32(mul32(C2, ALPHA_MAX_F), tmp2);
+  int32_t tmp3 = mul32(mul32(C2, alphaMax), tmp2);
 
   result = fixed2Float(tmp3);
 
@@ -109,7 +114,7 @@ int32_t xyToAlpha(int32_t x, int32_t y) {
 
   int32_t result;
 
-  int32_t tmp1 = mul32(DISTANCE_XY_PLANE_F, DISTANCE_XY_PLANE_F);
+  int32_t tmp1 = mul32(distanceXYPlane, distanceXYPlane);
   int32_t tmp2 = mul32(y, y);
   int32_t tmp3 = add32(tmp1, tmp2);
   int32_t tmp4 = add32(DISTANCE_AB_GALVOS_F, sqrt32(tmp3));
@@ -123,17 +128,27 @@ int32_t yToBeta(int32_t y) {
 
   int32_t result;
 
-  result = arctan_pade32(div32(y, DISTANCE_XY_PLANE_F));
+  result = arctan_pade32(div32(y, distanceXYPlane));
 
   return result;
 }
 
-int32_t alphaToDigit(int32_t alpha) {
-  return angleToDigit(alpha, ALPHA_MAX_F);
+int32_t alphaToDigit(int32_t alpha, int32_t x) {
+
+  if (x >= 0) {
+    return angleToDigit(alpha, alphaMax);
+  } else {
+    return angleToDigit(alpha, alphaMin);
+  }
 }
 
-int32_t betaToDigit(int32_t beta) {
-  return angleToDigit(beta, BETA_MAX_F);
+int32_t betaToDigit(int32_t beta, int32_t y) {
+
+  if (y >= 0) {
+    return angleToDigit(beta, betaMax);
+  } else {
+    return angleToDigit(beta, betaMin);
+  }
 }
 
 int32_t angleToDigit(int32_t angle, int32_t angle_max) {
@@ -148,6 +163,25 @@ int32_t angleToDigit(int32_t angle, int32_t angle_max) {
   result = div32(mul32(DAC_MAX_F, tmp1), tmp2);
 
   return result;
+}
+
+void axisDimensionsChanged() {
+
+  distanceXYPlane = float2Fixed(config.distanceXYPlane);
+  xMax = float2Fixed(config.xMax);
+  xMin = float2Fixed(config.xMin);
+  yMax = float2Fixed(config.yMax);
+  yMin = float2Fixed(config.yMin);
+
+  config.alphaMin = (float) abs(atan(config.xMin / config.distanceXYPlane));
+  config.alphaMax = (float) abs(atan(config.xMax / config.distanceXYPlane));
+  config.betaMin = (float) abs(atan(config.yMin / config.distanceXYPlane));
+  config.betaMax = (float) abs(atan(config.yMax / config.distanceXYPlane));
+
+  alphaMin = float2Fixed(config.alphaMin);
+  alphaMax = float2Fixed(config.alphaMax);
+  betaMin = float2Fixed(config.betaMin);
+  betaMax = float2Fixed(config.betaMax);
 }
 
 #ifdef __cplusplus

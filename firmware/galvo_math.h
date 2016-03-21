@@ -23,6 +23,8 @@ int32_t yToBetaDigit(int32_t y);
 float digitToAlpha(int32_t x);
 float digitToBeta(int32_t y);
 
+void axisDimensionsChanged();
+
 #ifdef __cplusplus
 }
 #endif
