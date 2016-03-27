@@ -24,6 +24,9 @@ enum gCodes {
   M0, // pause for x micros, e.g. M0 P1000
   M12, // set laser intensity, e.g. M12 S256
   M13, // enable laser M13 S1
+  M14, // configure line segmentation values, e.g. M13 X5 S66 (5 seg length, 66 steps per segment)
+  M15, // configure timing (spot exposure, resing settle), e.g. M15 S5000 P150 (5s settle, 0.15ms exposure)
+  M16, // configure dip depth and time, e.g. M16 Z4 S3000 (4mm dip depth, 3s dip time)
   M105,
   M110,
   M208, // set axis max dimensions, e.g. M208 S1 X100 (minX) or M208 X100 (maxX)

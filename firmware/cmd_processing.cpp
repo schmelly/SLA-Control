@@ -32,28 +32,27 @@ void handleHome(struct gCode* code);
 void handleSetPosition(struct gCode* code);
 void laserIntensity(struct gCode* code);
 void sleepM0(struct gCode* code);
-void linearMoveHelper(int32_t sX, int32_t sY, int32_t stepsPerSegment);
+void linearMoveHelper(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t stepsPerSegment);
 void printLoadedParams();
 //void axisCompensation(struct gCode* code);
 void homeMin(struct gCode* code);
 void homeMax(struct gCode* code);
 void setAxisDimensions(struct gCode* code);
+void setLineSegmentation(struct gCode* code);
+void setTiming(struct gCode* code);
+void setDipping(struct gCode* code);
 
 int laser_intensity = 0;
-float oldX = 0.0f, oldY = 0.0f;
-
 double posZ = 0;
 int stepsZ = 0;
 
-int32_t old_sX;
-int32_t old_sY;
-int32_t old_dX;
-int32_t old_dY;
+int32_t oldX = 0, oldY = 0;
+int oldXDigit = 0, oldYDigit = 0;
 
 void setupCommandProcessing() {
   laser_intensity = 0;
-  oldX = 0.0f;
-  oldY = 0.0f;
+  oldX = 0;
+  oldY = 0;
   posZ = 0;
   stepsZ = 0;
   axisDimensionsChanged();
@@ -86,6 +85,10 @@ void processCommand(struct gCode* code) {
     homeMax(code);
     Serial.println("ok");
     break;
+  case M0:
+    sleepM0(code);
+    Serial.println("ok");
+    break;
   case M12:
     laserIntensity(code);
     Serial.println("ok");
@@ -98,8 +101,16 @@ void processCommand(struct gCode* code) {
     }
     Serial.println("ok");
     break;
-  case M0:
-    sleepM0(code);
+  case M14:
+    setLineSegmentation(code);
+    Serial.println("ok");
+    break;
+  case M15:
+    setTiming(code);
+    Serial.println("ok");
+    break;
+  case M16:
+    setDipping(code);
     Serial.println("ok");
     break;
   case M105:
@@ -155,64 +166,54 @@ void handlePrintingMove(struct gCode* code) {
   xy[0] = code->xCoord;
   xy[1] = code->yCoord;
 
-  int32_t x1 = oldX;
-  int32_t y1 = oldY;
-  int32_t x2 = float2Fixed(xy[0]);
-  int32_t y2 = float2Fixed(xy[1]);
+  int32_t x0 = oldX;
+  int32_t y0 = oldY;
+  int32_t x1 = float2Fixed(xy[0]);
+  int32_t y1 = float2Fixed(xy[1]);
 
-//  dots = 0;
-//  uint32_t start = micros();
+  int32_t dX = sub32(x1, x0); // (x1 - x0)
+  int32_t dY = sub32(y1, y0); // (y1 - y0)
+  int32_t tmp1 = sq32(dX); // (x1 - x0)^2
+  int32_t tmp2 = sq32(dY); // (y1 - y0)^2
 
-  int32_t tmp1 = sub32(x1, x2); // (x1 - x2)
-  int32_t tmp2 = sub32(y1, y2); // (y1 - y2)
-  int32_t tmp3 = sq32(tmp1); // (x1 - x2)^2
-  int32_t tmp4 = sq32(tmp2); // (y1 - y2)^2
+  int32_t length = sqrt32(add32(tmp1, tmp2));
 
-  //float length = sqrt((x1 - x2)^2 + (y1 - y2)^2));
-  int32_t length = sqrt32(add32(tmp3, tmp4));
-
-  //float segmentRemainder = fmod(length, SEGMENT_LENGTH);
   int32_t segmentRemainder = length % config.segmenthLength;
 
-  int32_t tmp5 = div32(segmentRemainder, length); // (segmentRemainder / length)
-  int32_t tmp6 = sub32(x2, x1); // (x2 - x1)
-  int32_t tmp7 = sub32(y2, y1); // (y2 - y1)
-  int32_t tmp8 = mul32(tmp6, tmp5); // (x2 - x1) * (segmentRemainder / length)
-  int32_t tmp9 = mul32(tmp7, tmp5); // (y2 - y1) * (segmentRemainder / length)
+  int32_t tmp3 = div32(segmentRemainder, length); // (segmentRemainder / length)
+  int32_t tmp4 = mul32(dX, tmp3); // (x1 - x0) * (segmentRemainder / length)
+  int32_t tmp5 = mul32(dY, tmp3); // (y1 - y0) * (segmentRemainder / length)
 
-  //float x2_ = x2 - (x2 - x1) * (segmentRemainder / length);
-  int32_t x2_ = sub32(x2, tmp8);
-  //float y2_ = y2 - (y2 - y1) * (segmentRemainder / length);
-  int32_t y2_ = sub32(y2, tmp9);
+  //float x1_ = x1 - (x1 - x0) * (segmentRemainder / length);
+  int32_t x1_ = sub32(x1, tmp4);
+  //float y1_ = y1 - (y1 - y0) * (segmentRemainder / length);
+  int32_t y1_ = sub32(y1, tmp5);
 
-  //int numSegments = length / SEGMENT_LENGTH;
-  int32_t numSegments = div32(length, config.segmenthLength);
+  int32_t numSegments = (int32_t) fixed2Float(div32(length, config.segmenthLength));
 
   //int numSegmentsCoords = (numSegments) * 2;
-  int32_t numSegmentsCoords = (int32_t) fixed2Float(numSegments) * 2;
+  int32_t numSegmentsCoords = numSegments * 2;
   int32_t segmentCoords[numSegmentsCoords];
 
-  int32_t tmp10 = sub32(x2_, x1); // (x2_ - x1)
-  int32_t tmp11 = sub32(y2_, y1); // (y2_ - y1)
+  int32_t tmp6 = sub32(x1_, x0); // (x1_ - x0)
+  int32_t tmp7 = sub32(y1_, y0); // (y1_ - y0)
 
-  int32_t i, j = 0;
+  int32_t i_x = div32(tmp6, float2Fixed(numSegments)); // (x1_ - x0) / numSegments
+  int32_t i_y = div32(tmp7, float2Fixed(numSegments)); // (y1_ - y0) / numSegments
+
+  int32_t i;
   for (i = 0; i < numSegmentsCoords; i += 2) {
 
-    j++;
-    int32_t tmp12 = mul32(float2Fixed(j), tmp10); // j * (x2_ - x1)
-    int32_t tmp13 = mul32(float2Fixed(j), tmp11); // j * (y2_ - y1)
+    x0 = add32(x0, i_x);
+    y0 = add32(y0, i_y);
 
-    //segmentCoords[i] = x1 + j * (x2_ - x1) / numSegments;
-    segmentCoords[i] = add32(x1, div32(tmp12, numSegments));
-    //segmentCoords[i + 1] = y1 + j * (y2_ - y1) / numSegments;
-    segmentCoords[i + 1] = add32(y1, div32(tmp13, numSegments));
+    segmentCoords[i] = x0;
+    segmentCoords[i + 1] = y0;
   }
 
   //first part: process each segment
-  old_sX = x1;
-  old_sY = y1;
-  old_dX = xyToAlphaDigit(old_sX, old_sY);
-  old_dY = yToBetaDigit(old_sY);
+  oldXDigit = xyToAlphaDigit(oldX, oldY);
+  oldYDigit = yToBetaDigit(oldY);
 
   changeLaserValue(laser_intensity);
 
@@ -221,31 +222,24 @@ void handlePrintingMove(struct gCode* code) {
     int32_t sX = segmentCoords[i];
     int32_t sY = segmentCoords[i + 1];
 
-    linearMoveHelper(sX, sY, config.maxStepsPerSegment);
+    linearMoveHelper(oldX, oldY, sX, sY, config.maxStepsPerSegment);
 
-    old_sX = sX;
-    old_sY = sY;
+    oldX = sX;
+    oldY = sY;
   }
 
   //2. step last segment to endpoint
   if (segmentRemainder != 0) {
 
-    int32_t stepsPerSegment = mul32(config.maxStepsPerSegment, div32(segmentRemainder, length));
-    linearMoveHelper(x2, y2, stepsPerSegment);
+    int32_t stepsPerSegment = mul32(segmentRemainder, div32(config.maxStepsPerSegment, config.segmenthLength));
+    linearMoveHelper(oldX, oldY, x1, y1, stepsPerSegment);
   }
 
   changeLaserValue(0);
   delayMicroseconds(100);
 
-  oldX = x2;
-  oldY = y2;
-
-//  uint32_t stop = micros();
-//  uint32_t time = stop - start;
-//
-//  memset(msg, 0, sizeof(char) * 100);
-//  sprintf(msg, "%ld micros total, %ld dots total, %ld micros per dot", time, dots, time / dots);
-//  Serial.println(msg);
+  oldX = x1;
+  oldY = y1;
 }
 
 void handleNonPrintingMove(struct gCode* code) {
@@ -253,68 +247,68 @@ void handleNonPrintingMove(struct gCode* code) {
   int32_t x = float2Fixed(code->xCoord);
   int32_t y = float2Fixed(code->yCoord);
 
-  int32_t dX = xyToAlphaDigit(x, y);
-  int32_t dY = yToBetaDigit(y);
+  int32_t xDigit = xyToAlphaDigit(x, y);
+  int32_t yDigit = yToBetaDigit(y);
 
-  changeMotorValues(dX, dY);
+  changeMotorValues(xDigit, yDigit);
   delayMicroseconds(100);
 
   oldX = x;
   oldY = y;
+  oldXDigit = xDigit;
+  oldYDigit = yDigit;
 }
 
-void linearMoveHelper(int32_t sX, int32_t sY, int32_t stepsPerSegment) {
+void linearMoveHelper(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t stepsPerSegment) {
 
   int32_t i;
 
   uint32_t calcStart;
   int32_t waitTime;
 
-  int32_t tmp1 = sub32(sX, old_sX); // (sX - old_sX)
-  int32_t tmp2 = sub32(sY, old_sY); // (sY - old_sY)
+  int32_t dx = sub32(x1, x0); // (x1 - x0)
+  int32_t dy = sub32(y1, y0); // (y1 - y0)
 
-  int32_t tmp3 = div32(tmp1, stepsPerSegment); // (sX - old_sX) / stepsPerSegment
-  int32_t tmp4 = div32(tmp2, stepsPerSegment); // (sY - old_sY) / stepsPerSegment
+  int32_t i_x = div32(dx, stepsPerSegment); // (x1 - x0) / stepsPerSegment
+  int32_t i_y = div32(dy, stepsPerSegment); // (y1 - y0) / stepsPerSegment
 
   calcStart = micros();
 
+  //uint32_t totalWaitTime = 0;
+  //uint32_t start = calcStart;
+
   for (i = 0; i < fixed2Float(stepsPerSegment); i++) {
 
-    int32_t tmp5 = mul32(float2Fixed(i), tmp3); // i * (sX - old_sX) / stepsPerSegment
-    int32_t tmp6 = mul32(float2Fixed(i), tmp4); // i* (sY - old_sY) / stepsPerSegment
+    int32_t xDigit = xyToAlphaDigit(x0, y0);
+    int32_t yDigit = yToBetaDigit(y0);
 
-    //float sX_ = old_sX + i * (sX - old_sX) / stepsPerSegment;
-    int32_t sX_ = add32(old_sX, tmp5);
-    //float sY_ = old_sY + i * (sY - old_sY) / stepsPerSegment;
-    int32_t sY_ = add32(old_sY, tmp6);
+    //serialPrintln("%.5f\t%.5f\t%d", fixed2Float(x0), fixed2Float(y0), (oldXDigit != xDigit || oldYDigit != yDigit) ? 1 : 0);
 
-    int32_t dX = xyToAlphaDigit(sX_, sY_);
-    int32_t dY = yToBetaDigit(sY_);
+    if (oldXDigit != xDigit || oldYDigit != yDigit) {
 
-    if (old_dX != dX || old_dY != dY) {
-      changeMotorValues(dX, dY);
-      //printf("%d|%d\n", dX, dY);
-      //dots++;
+      changeMotorValues(xDigit, yDigit);
 
       //calculate the exposure time for a single spot
-      //waitTime = (int32_t)(EXPOSURE_TIME - (micros() - calcStart));
       waitTime = (int32_t)(config.exposureTime - (micros() - calcStart));
 
       if (waitTime > 0) {
+        //totalWaitTime += waitTime;
         delayMicroseconds(waitTime);
       }
-
-//      char msg[100];
-//      memset(msg, '\0', sizeof(char) * 100);
-//      sprintf(msg, "old_dX: %ld old_dY: %ld dX: %ld dY: %ld waitTime: %ld", old_dX, old_dY, dX, dY, waitTime);
-//      Serial.println(msg);
 
       calcStart = micros();
     }
 
-    old_dX = dX;
-    old_dY = dY;
+    x0 = add32(x0, i_x);
+    y0 = add32(y0, i_y);
+
+    oldXDigit = xDigit;
+    oldYDigit = yDigit;
   }
+
+  //uint32_t total = calcStart - start;
+  //serialPrintln("Iterations: %ld Total: %ldus Wait: %ldus Utilization: %.5f%%", i, total, totalWaitTime,
+  //    100.0f - (float) totalWaitTime / (float) total * 100.0f);
 }
 
 void handleZMove(struct gCode* code) {
@@ -338,10 +332,6 @@ void handleZMove(struct gCode* code) {
     // calculate target z
     double targetZ = (layerVolume - volumeProfiles) / TANK_AREA;
 
-//    memset(msg, '\0', sizeof(char) * 100);
-//    sprintf(msg, "vP: %f | lV: %f | tZ: %f", volumeProfiles, layerVolume, targetZ);
-//    Serial.println(msg);
-
     // dip
     steps = (int) (STEPS_PER_MM_Z * config.dipDepth);
     Stepper.move(steps);
@@ -349,11 +339,7 @@ void handleZMove(struct gCode* code) {
     posZ += config.dipDepth;
     stepsZ += steps;
 
-    delay(2000);
-
-//    memset(msg, '\0', sizeof(char) * 100);
-//    sprintf(msg, "deltaZ: %f | posZ: %f | stepsZ: %d | dip: %d steps", deltaZ, posZ, stepsZ, steps);
-//    Serial.println(msg);
+    delay(config.dipTime);
 
     // un-dip minus targetZ
     steps = (int) (-STEPS_PER_MM_Z * (config.dipDepth - targetZ));
@@ -361,12 +347,7 @@ void handleZMove(struct gCode* code) {
     posZ += -(config.dipDepth - deltaZ);
     stepsZ += steps;
 
-//    memset(msg, '\0', sizeof(char) * 100);
-//    sprintf(msg, "deltaZ: %f | posZ: %f | stepsZ: %d | un-dip: %d steps", deltaZ, posZ, stepsZ, steps);
-//    Serial.println(msg);
-
     //let the resin settle;
-    //delay (SETTLE_TIME);
     delay(config.settleTime);
 
   } else {
@@ -376,10 +357,6 @@ void handleZMove(struct gCode* code) {
     stepsZ += steps;
   }
   Stepper.sleepON();
-
-//  memset(msg, '\0', sizeof(char) * 100);
-//  sprintf(msg, "posZ: %f | stepsZ: %d | %d steps", posZ, stepsZ, steps);
-//  Serial.println(msg);
 }
 
 void handleHome(struct gCode* code) {
@@ -390,11 +367,6 @@ void handleHome(struct gCode* code) {
   Stepper.sleepON();
   posZ = 0;
   stepsZ = 0;
-
-//  char msg[100];
-//  memset(msg, '\0', sizeof(char) * 100);
-//  sprintf(msg, "posZ: %f | stepsZ: %d | home %d steps", posZ, stepsZ, steps);
-//  Serial.println(msg);
 }
 
 void sleepM0(struct gCode* code) {
@@ -427,13 +399,6 @@ void laserIntensity(struct gCode* code) {
   }
 
   laser_intensity = code->sValue;
-  //int value = code->laserIntensity;
-  //changeLaserValue(value);
-
-//  char msg[100];
-//  memset(msg, '\0', sizeof(char) * 100);
-//  sprintf(msg, "laser intensity: %d", laser_intensity);
-//  Serial.println(msg);
 }
 
 //void axisCompensation(struct gCode* code) {
@@ -484,4 +449,36 @@ void setAxisDimensions(struct gCode* code) {
   }
 
   axisDimensionsChanged();
+}
+
+void setLineSegmentation(struct gCode* code) {
+
+  if (code->xCoord != -FLT_MAX) {
+    config.segmenthLength = float2Fixed(code->xCoord);
+  }
+
+  if (code->sValue != INT_MIN) {
+    config.maxStepsPerSegment = float2Fixed(code->sValue);
+  }
+}
+
+void setTiming(struct gCode* code) {
+
+  if (code->sValue != INT_MIN) {
+    config.settleTime = code->sValue;
+  }
+
+  if (code->pValue != INT_MIN) {
+    config.exposureTime = code->pValue;
+  }
+}
+
+void setDipping(struct gCode* code) {
+
+  if (code->zCoord != -FLT_MAX) {
+    config.dipDepth = code->zCoord;
+  }
+  if (code->sValue != INT_MIN) {
+    config.dipTime = code->sValue;
+  }
 }

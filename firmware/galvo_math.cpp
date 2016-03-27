@@ -18,8 +18,6 @@ extern "C" {
 
 #define DAC_MAX_F float2Fixed(DAC_MAX)
 #define C05 float2Fixed(1.f / 2.f)
-#define C1 float2Fixed(1.f)
-#define C2 float2Fixed(2.f)
 #define DISTANCE_AB_GALVOS_F float2Fixed(DISTANCE_AB_GALVOS)
 
 int32_t distanceXYPlane = float2Fixed(config.distanceXYPlane);
@@ -80,7 +78,7 @@ float digitToAlpha(int32_t x) {
 
   int32_t tmp1 = div32(x_f, DAC_MAX_F);
   int32_t tmp2 = sub32(tmp1, C05);
-  int32_t tmp3 = mul32(mul32(C2, alphaMax), tmp2);
+  int32_t tmp3 = mul32(add32(alphaMax, alphaMax), tmp2);
 
   result = fixed2Float(tmp3);
 
@@ -97,7 +95,7 @@ float digitToBeta(int32_t y) {
 
   int32_t tmp1 = div32(y_f, DAC_MAX_F);
   int32_t tmp2 = sub32(tmp1, C05);
-  int32_t tmp3 = mul32(mul32(C2, alphaMax), tmp2);
+  int32_t tmp3 = mul32(add32(alphaMax, alphaMax), tmp2);
 
   result = fixed2Float(tmp3);
 
@@ -154,7 +152,7 @@ int32_t angleToDigit(int32_t angle, int32_t angle_max) {
   int32_t result;
 
   int32_t tmp1 = add32(angle, angle_max);
-  int32_t tmp2 = mul32(C2, angle_max);
+  int32_t tmp2 = add32(angle_max, angle_max);
 
   result = div32(mul32(DAC_MAX_F, tmp1), tmp2);
 

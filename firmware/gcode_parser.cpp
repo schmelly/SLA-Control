@@ -154,6 +154,15 @@ gCode* parseGCodeLine(char* line) {
       case 13:
         g.code = M13;
         break;
+      case 14:
+        g.code = M14;
+        break;
+      case 15:
+        g.code = M15;
+        break;
+      case 16:
+        g.code = M16;
+        break;
       case 105:
         g.code = M105;
         break;

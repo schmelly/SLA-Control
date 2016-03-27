@@ -52,6 +52,7 @@ void loadDefaultValues() {
   config.betaMin = (float) abs(atan(config.yMin / config.distanceXYPlane));
   config.betaMax = (float) abs(atan(config.yMax / config.distanceXYPlane));
   config.dipDepth = DIP_DEPTH;
+  config.dipTime = DIP_TIME;
   config.exposureTime = EXPOSURE_TIME;
   config.settleTime = SETTLE_TIME;
 }
@@ -75,8 +76,8 @@ void printLoadedParams() {
   serialPrintln("alphaMin: %.4f\nalphaMax: %.4f\nbetaMin: %.4f\nbetaMax: %.4f", //
       config.alphaMin, config.alphaMax, config.betaMin, config.betaMax);
 
-  serialPrintln("dipDepth: %.4f\nexposureTime: %ld\nexposureTime: %ld", //
-      config.dipDepth, config.exposureTime, config.settleTime);
+  serialPrintln("dipDepth: %.4f\ndipTime: %ld\nexposureTime: %ld\nsettleTime: %ld", //
+      config.dipDepth, config.dipTime, config.exposureTime, config.settleTime);
 }
 
 #ifdef __cplusplus

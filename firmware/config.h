@@ -14,7 +14,7 @@
 #define serialPrintln(...)  do{ char msg[100];  memset(msg, '\0', sizeof(char) * 100); sprintf(msg, __VA_ARGS__);  Serial.println(msg); } while(0);
 
 #define SEGMENT_LENGTH float2Fixed(5.f)
-#define MAX_STEPS_PER_SEGMENT float2Fixed(66.f)
+#define MAX_STEPS_PER_SEGMENT float2Fixed(50.f)
 
 //#define DISTANCE_XY_PLANE 240.f
 #define DISTANCE_XY_PLANE 366.5f
@@ -50,7 +50,7 @@
 // how much is the platform dipped during z-moves
 #define DIP_DEPTH 4.f
 
-// volume of the two platform profiles per 10mm, use to correct dip depth per layer
+// volume of the two platform profiles per 10mm, used to correct dip depth per layer
 #define VOLUME_PROFILES (2*1839.f)
 
 // tank area
@@ -58,10 +58,12 @@
 #define TANK_X 140.f
 #define TANK_AREA (TANK_X*TANK_Y)
 
-// 0.15 ms
+// 3s
+#define DIP_TIME 3000
+// 0.15ms
 #define EXPOSURE_TIME 150
-// 5s
-#define SETTLE_TIME 5000
+// 4.5s
+#define SETTLE_TIME 4500
 
 #ifdef __cplusplus
 extern "C" {
@@ -84,6 +86,7 @@ struct Configuration {
   float betaMax;
   //printing related data
   float dipDepth;
+  int32_t dipTime;
   int32_t exposureTime;
   int32_t settleTime;
 };
