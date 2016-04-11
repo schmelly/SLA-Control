@@ -34,7 +34,7 @@ void laserIntensity(struct gCode* code);
 void sleepM0(struct gCode* code);
 void linearMoveHelper(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t stepsPerSegment);
 void printLoadedParams();
-//void axisCompensation(struct gCode* code);
+void axisCompensation(struct gCode* code);
 void homeMin(struct gCode* code);
 void homeMax(struct gCode* code);
 void setAxisDimensions(struct gCode* code);
@@ -136,10 +136,10 @@ void processCommand(struct gCode* code) {
     printLoadedParams();
     Serial.println("ok");
     break;
-//  case M556:
-//    axisCompensation(code);
-//    Serial.println("ok");
-//    break;
+  case M556:
+    axisCompensation(code);
+    Serial.println("ok");
+    break;
   case M110:
   case UNKNOWN:
     Serial.println("ok");
@@ -242,21 +242,77 @@ void handlePrintingMove(struct gCode* code) {
   oldY = y1;
 }
 
+int32_t applyError(int32_t a, int32_t* errors) {
+
+  int32_t returnValue;
+
+  int li = (div32(abs(a), C10) & M_MASK) >> 12; // (int) a/5
+  int ui = li + 1;
+
+  int32_t le = errors[li];
+  int32_t ue = errors[ui];
+
+  // 8.75
+  int32_t w = a & F_MASK;
+  int32_t e1 = mul32(le, C1 - w);
+  int32_t e2 = mul32(w, ue);
+  int32_t error = e1 + e2;
+
+  returnValue = a - error;
+
+  return returnValue;
+}
+
+int32_t applyXError(int32_t x) {
+
+  int32_t returnValue;
+  x >= 0 ? returnValue = applyError(x, config.xMaxErrorCompensation) : returnValue = applyError(x, config.xMinErrorCompensation);
+
+  return returnValue;
+}
+
+int32_t applyYError(int32_t y) {
+
+  int32_t returnValue;
+  y >= 0 ? returnValue = applyError(y, config.yMaxErrorCompensation) : returnValue = applyError(y, config.yMinErrorCompensation);
+
+  return returnValue;
+}
+
 void handleNonPrintingMove(struct gCode* code) {
 
-  int32_t x = float2Fixed(code->xCoord);
-  int32_t y = float2Fixed(code->yCoord);
+  if (code->sValue != INT_MIN) {
 
-  int32_t xDigit = xyToAlphaDigit(x, y);
-  int32_t yDigit = yToBetaDigit(y);
+    int32_t xDigit = (int32_t) code->xCoord;
+    int32_t yDigit = (int32_t) code->yCoord;
 
-  changeMotorValues(xDigit, yDigit);
-  delayMicroseconds(100);
+    changeMotorValues(xDigit, yDigit);
+    delayMicroseconds(100);
 
-  oldX = x;
-  oldY = y;
-  oldXDigit = xDigit;
-  oldYDigit = yDigit;
+    oldX = 0;
+    oldY = 0;
+    oldXDigit = xDigit;
+    oldYDigit = yDigit;
+
+  } else {
+
+    int32_t x = float2Fixed(code->xCoord);
+    int32_t y = float2Fixed(code->yCoord);
+
+    int32_t xe = applyXError(x);
+    int32_t ye = applyYError(y);
+
+    int32_t xDigit = xyToAlphaDigit(xe, ye);
+    int32_t yDigit = yToBetaDigit(ye);
+
+    changeMotorValues(xDigit, yDigit);
+    delayMicroseconds(100);
+
+    oldX = x;
+    oldY = y;
+    oldXDigit = xDigit;
+    oldYDigit = yDigit;
+  }
 }
 
 void linearMoveHelper(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t stepsPerSegment) {
@@ -274,8 +330,8 @@ void linearMoveHelper(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t st
 
   calcStart = micros();
 
-  //uint32_t totalWaitTime = 0;
-  //uint32_t start = calcStart;
+//uint32_t totalWaitTime = 0;
+//uint32_t start = calcStart;
 
   for (i = 0; i < fixed2Float(stepsPerSegment); i++) {
 
@@ -306,9 +362,9 @@ void linearMoveHelper(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t st
     oldYDigit = yDigit;
   }
 
-  //uint32_t total = calcStart - start;
-  //serialPrintln("Iterations: %ld Total: %ldus Wait: %ldus Utilization: %.5f%%", i, total, totalWaitTime,
-  //    100.0f - (float) totalWaitTime / (float) total * 100.0f);
+//uint32_t total = calcStart - start;
+//serialPrintln("Iterations: %ld Total: %ldus Wait: %ldus Utilization: %.5f%%", i, total, totalWaitTime,
+//    100.0f - (float) totalWaitTime / (float) total * 100.0f);
 }
 
 void handleZMove(struct gCode* code) {
@@ -401,16 +457,28 @@ void laserIntensity(struct gCode* code) {
   laser_intensity = code->sValue;
 }
 
-//void axisCompensation(struct gCode* code) {
-//
-//  if (code->xCoord != -FLT_MAX) {
-//    code->sValue == 1 ? config.xMinOffset = (code->xCoord) - config.xMin : config.xMaxOffset = (code->xCoord) - config.xMax;
-//  }
-//
-//  if (code->yCoord != -FLT_MAX) {
-//    code->sValue == 1 ? config.yMinOffset = (code->yCoord) - config.yMin : config.yMaxOffset = (code->yCoord) - config.yMax;
-//  }
-//}
+void axisCompensation(struct gCode* code) {
+
+  if (code->sValue > -N_ERR_VALUES && code->sValue < N_ERR_VALUES) {
+
+    if (code->xCoord != -FLT_MAX) {
+      if (code->sValue <= 0) {
+        config.xMinErrorCompensation[abs(code->sValue)] = float2Fixed(code->xCoord);
+      }
+      if (code->sValue >= 0) {
+        config.xMaxErrorCompensation[code->sValue] = float2Fixed(code->xCoord);
+      }
+    }
+    if (code->yCoord != -FLT_MAX) {
+      if (code->sValue <= 0) {
+        config.yMinErrorCompensation[abs(code->sValue)] = float2Fixed(code->yCoord);
+      }
+      if (code->sValue >= 0) {
+        config.yMaxErrorCompensation[code->sValue] = float2Fixed(code->yCoord);
+      }
+    }
+  }
+}
 
 void homeMin(struct gCode* code) {
 

@@ -34,7 +34,7 @@ enum gCodes {
   M501, // read parameters from flash memory
   M502, // revert to default values in config.h
   M503, // print loaded settings
-//  M556 // axis compensation
+  M556 // axis compensation
 };
 
 struct gCode {

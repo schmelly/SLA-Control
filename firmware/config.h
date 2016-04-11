@@ -11,19 +11,20 @@
 #include "math.h"
 #include "fixedpoint_math.h"
 
-#define serialPrintln(...)  do{ char msg[100];  memset(msg, '\0', sizeof(char) * 100); sprintf(msg, __VA_ARGS__);  Serial.println(msg); } while(0);
+#define serialPrintln(...)  do{ char msg[200];  memset(msg, '\0', sizeof(char) * 200); sprintf(msg, __VA_ARGS__);  Serial.println(msg); } while(0);
+#define serialPrint(...)  do{ char msg[200];  memset(msg, '\0', sizeof(char) * 200); sprintf(msg, __VA_ARGS__);  Serial.print(msg); } while(0);
 
 #define SEGMENT_LENGTH float2Fixed(5.f)
 #define MAX_STEPS_PER_SEGMENT float2Fixed(50.f)
 
 //#define DISTANCE_XY_PLANE 240.f
-#define DISTANCE_XY_PLANE 366.5f
+#define DISTANCE_XY_PLANE 201.5f
 #define DISTANCE_AB_GALVOS 9.f
 
-#define X_MAX 61.3f
-#define X_MIN -57.0f
-#define Y_MAX 91.4f
-#define Y_MIN -100.5f
+#define X_MAX 49.7300f
+#define X_MIN -46.5900f
+#define Y_MAX 54.9200f
+#define Y_MIN -59.3200f
 
 //#define INVERT_X
 #define INVERT_Y
@@ -65,6 +66,8 @@
 // 4.5s
 #define SETTLE_TIME 4500
 
+#define N_ERR_VALUES 10
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -89,6 +92,10 @@ struct Configuration {
   int32_t dipTime;
   int32_t exposureTime;
   int32_t settleTime;
+  int32_t xMinErrorCompensation[N_ERR_VALUES];
+  int32_t xMaxErrorCompensation[N_ERR_VALUES];
+  int32_t yMinErrorCompensation[N_ERR_VALUES];
+  int32_t yMaxErrorCompensation[N_ERR_VALUES];
 };
 
 extern Configuration config;

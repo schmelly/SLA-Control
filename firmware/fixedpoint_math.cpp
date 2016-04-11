@@ -12,11 +12,6 @@
 extern "C" {
 #endif
 
-#define Qf 12
-#define K (1 << (Qf - 1))
-
-const int32_t C3 = float2Fixed(3.f);
-
 int32_t float2Fixed(float f) {
 
   int32_t result;
@@ -83,6 +78,9 @@ int32_t sq32(int32_t a) {
 
 int32_t sqrt32(int32_t x) {
 
+//  int32_t result = float2Fixed(sqrt(fixed2Float(x)));
+//  return result;
+
   uint32_t testDiv = 0;
   uint32_t root = 0;
   uint32_t remHi = 0;
@@ -103,7 +101,10 @@ int32_t sqrt32(int32_t x) {
 
 int32_t arctan_pade32(int32_t a) {
 
-  //3.f * x / (x * x + 3.f);
+//  int32_t result = float2Fixed(atan(fixed2Float(a)));
+//  return result;
+
+//3.f * x / (x * x + 3.f);
   int32_t tmp1 = mul32(C3, a);
   int32_t tmp2 = add32(mul32(a, a), C3);
   int32_t result = div32(tmp1, tmp2);

@@ -167,8 +167,8 @@ void axisDimensionsChanged() {
   yMax = float2Fixed(config.yMax);
   yMin = float2Fixed(config.yMin);
 
-  config.alphaMin = (float) abs(atan(config.xMin / config.distanceXYPlane));
-  config.alphaMax = (float) abs(atan(config.xMax / config.distanceXYPlane));
+  config.alphaMin = (float) abs(atan(config.xMin / (DISTANCE_AB_GALVOS + config.distanceXYPlane)));
+  config.alphaMax = (float) abs(atan(config.xMax / (DISTANCE_AB_GALVOS + config.distanceXYPlane)));
   config.betaMin = (float) abs(atan(config.yMin / config.distanceXYPlane));
   config.betaMax = (float) abs(atan(config.yMax / config.distanceXYPlane));
 

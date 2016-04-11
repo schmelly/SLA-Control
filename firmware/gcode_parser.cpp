@@ -184,9 +184,9 @@ gCode* parseGCodeLine(char* line) {
       case 503:
         g.code = M503;
         break;
-//      case 556:
-//        g.code = M556;
-//        break;
+      case 556:
+        g.code = M556;
+        break;
       default:
         g.code = UNKNOWN;
         break;

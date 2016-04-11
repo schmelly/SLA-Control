@@ -14,6 +14,11 @@
 extern "C" {
 #endif
 
+#define Qf 12
+#define K (1 << (Qf - 1))
+#define M_MASK (((1 << (31-Qf)) - 1) << Qf)
+#define F_MASK ((1 << Qf) - 1)
+
 int32_t float2Fixed(float f);
 float fixed2Float(int32_t s);
 
@@ -25,6 +30,10 @@ int32_t div32(int32_t a, int32_t b);
 int32_t arctan_pade32(int32_t a);
 int32_t sq32(int32_t a);
 int32_t sqrt32(int32_t a);
+
+const int32_t C1 = float2Fixed(1.f);
+const int32_t C3 = float2Fixed(3.f);
+const int32_t C10 = float2Fixed(10.f);
 
 #ifdef __cplusplus
 }

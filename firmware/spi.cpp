@@ -17,6 +17,8 @@ const word maskSecondByteA = 0b0000000011111111;
 const word maskFirstByteB = 0b10110000;
 const word maskSecondByteB = 0b0000000011111111;
 
+int oldXValue = DAC_ZERO, oldYValue = DAC_ZERO;
+
 void setupSPI() {
 
   pinMode(CS_MOTORS, OUTPUT);
@@ -40,6 +42,28 @@ void setupSPI() {
 }
 
 void changeMotorValues(int xValue, int yValue) {
+
+  if (xValue < 0) {
+    xValue = 0;
+  } else if (xValue > DAC_MAX) {
+    xValue = DAC_MAX;
+  }
+
+  if (yValue < 0) {
+    yValue = 0;
+  } else if (yValue > DAC_MAX) {
+    yValue = DAC_MAX;
+  }
+
+  if (abs(xValue - oldXValue) > 10 || abs(yValue - oldYValue) > 10) {
+    int sgnX = ((xValue - oldXValue) > 10) - ((xValue - oldXValue) < -10);
+    int sgnY = ((yValue - oldYValue) > 10) - ((yValue - oldYValue) < -10);
+    changeMotorValues(xValue - 10 * sgnX, yValue - 10 * sgnY);
+    delayMicroseconds(100);
+  }
+
+  oldXValue = xValue;
+  oldYValue = yValue;
 
 #ifdef INVERT_X
   xValue = DAC_MAX-xValue;
