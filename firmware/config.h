@@ -18,13 +18,13 @@
 #define MAX_STEPS_PER_SEGMENT float2Fixed(50.f)
 
 //#define DISTANCE_XY_PLANE 240.f
-#define DISTANCE_XY_PLANE 201.5f
+#define DISTANCE_XY_PLANE 201.f
 #define DISTANCE_AB_GALVOS 9.f
 
-#define X_MAX 49.7300f
-#define X_MIN -46.5900f
-#define Y_MAX 54.9200f
-#define Y_MIN -59.3200f
+#define X_MAX 49.5f
+#define X_MIN -45.58f
+#define Y_MAX 54.75f
+#define Y_MIN -58.98f
 
 //#define INVERT_X
 #define INVERT_Y
@@ -66,7 +66,9 @@
 // 4.5s
 #define SETTLE_TIME 4500
 
-#define N_ERR_VALUES 10
+#define N_X_ERR_VALUES 5
+#define N_Y_ERR_VALUES 5
+#define ERR_SCALING float2Fixed(20.f)
 
 #ifdef __cplusplus
 extern "C" {
@@ -92,10 +94,8 @@ struct Configuration {
   int32_t dipTime;
   int32_t exposureTime;
   int32_t settleTime;
-  int32_t xMinErrorCompensation[N_ERR_VALUES];
-  int32_t xMaxErrorCompensation[N_ERR_VALUES];
-  int32_t yMinErrorCompensation[N_ERR_VALUES];
-  int32_t yMaxErrorCompensation[N_ERR_VALUES];
+  int32_t xErrorCompensation[N_X_ERR_VALUES][N_Y_ERR_VALUES];
+  int32_t yErrorCompensation[N_X_ERR_VALUES][N_Y_ERR_VALUES];
 };
 
 extern Configuration config;

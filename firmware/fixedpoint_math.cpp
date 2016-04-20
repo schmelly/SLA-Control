@@ -5,6 +5,7 @@
  *      Author: schmelly
  */
 
+#include "config.h"
 #include "fixedpoint_math.h"
 #include "Arduino.h"
 
@@ -110,6 +111,32 @@ int32_t arctan_pade32(int32_t a) {
   int32_t result = div32(tmp1, tmp2);
 
   return result;
+}
+
+int32_t linearInterpolation(int32_t q1, int32_t q2, int32_t x0, int32_t x1, int32_t x) {
+
+  //e = f(x0) + (f(x1) - f(x0)) / (x1 - x0) * (x - x0)
+  int32_t q2q1, x1x0, xx0, returnValue;
+  q2q1 = q2 - q1;
+  x1x0 = x1 - x0;
+  xx0 = x - x0;
+  returnValue = q1 + mul32(div32(q2q1, x1x0), xx0);
+
+  return returnValue;
+}
+
+int32_t bilinearInterpolation(int32_t q11, int32_t q12, int32_t q21, int32_t q22, int32_t x0, int32_t x1, int32_t y0, int32_t y1, int32_t x, int32_t y) {
+
+  int32_t x1x0, y1y0, x1x, y1y, yy0, xx0, returnValue;
+  x1x0 = x1 - x0;
+  y1y0 = y1 - y0;
+  x1x = x1 - x;
+  y1y = y1 - y;
+  yy0 = y - y0;
+  xx0 = x - x0;
+  returnValue = mul32(div32(C1, mul32(x1x0, y1y0)),
+      (mul32(q11, mul32(x1x, y1y)) + mul32(q21, mul32(xx0, y1y)) + mul32(q12, mul32(x1x, yy0)) + mul32(q22, mul32(xx0, yy0))));
+  return returnValue;
 }
 
 #ifdef __cplusplus

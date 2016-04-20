@@ -34,7 +34,8 @@ enum gCodes {
   M501, // read parameters from flash memory
   M502, // revert to default values in config.h
   M503, // print loaded settings
-  M556 // axis compensation
+  M556, // axis compensation
+  M710 // render point cloud for error calibration, e.g. M710 S1 P1 (rendering on, with error compensation) or M710 S1 (rendering on, without error compensation) or M710 S0 (rendering off)
 };
 
 struct gCode {

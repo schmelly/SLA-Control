@@ -41,6 +41,8 @@ void setAxisDimensions(struct gCode* code);
 void setLineSegmentation(struct gCode* code);
 void setTiming(struct gCode* code);
 void setDipping(struct gCode* code);
+void calculatePointCloudCoordinates();
+void pCloudErrCompensation(struct gCode* code);
 
 int laser_intensity = 0;
 double posZ = 0;
@@ -49,18 +51,22 @@ int stepsZ = 0;
 int32_t oldX = 0, oldY = 0;
 int oldXDigit = 0, oldYDigit = 0;
 
+bool pointCloudErrorCompensation = false;
+struct gCode tmpCode = { UNKNOWN, '\0', INT_MIN, -FLT_MAX, -FLT_MAX, -FLT_MAX, -FLT_MAX, -FLT_MAX, INT_MIN, INT_MIN, INT_MIN };
+struct gCode* pTmpCode = &tmpCode;
+
 void setupCommandProcessing() {
   laser_intensity = 0;
   oldX = 0;
   oldY = 0;
   posZ = 0;
   stepsZ = 0;
+  pointCloudErrorCompensation = false;
   axisDimensionsChanged();
+  calculatePointCloudCoordinates();
 }
 
 void processCommand(struct gCode* code) {
-
-  //printCode(code);
 
   switch (code->code) {
   case G0:
@@ -138,6 +144,10 @@ void processCommand(struct gCode* code) {
     break;
   case M556:
     axisCompensation(code);
+    Serial.println("ok");
+    break;
+  case M710:
+    pCloudErrCompensation(code);
     Serial.println("ok");
     break;
   case M110:
@@ -242,39 +252,106 @@ void handlePrintingMove(struct gCode* code) {
   oldY = y1;
 }
 
-int32_t applyError(int32_t a, int32_t* errors) {
+int32_t applyError(int32_t a, int32_t x, int32_t y, int32_t (*errors)[N_X_ERR_VALUES][N_Y_ERR_VALUES]) {
 
-  int32_t returnValue;
+  int32_t error, returnValue;
 
-  int li = (div32(abs(a), C10) & M_MASK) >> 12; // (int) a/5
-  int ui = li + 1;
+  int32_t xModErrSc = x % ERR_SCALING;
+  int32_t yModErrSc = y % ERR_SCALING;
 
-  int32_t le = errors[li];
-  int32_t ue = errors[ui];
+  int li_x = ((div32(x, ERR_SCALING) & M_MASK) >> Qf) + N_X_ERR_VALUES / 2;
+  int li_y = ((div32(y, ERR_SCALING) & M_MASK) >> Qf) + N_Y_ERR_VALUES / 2;
 
-  // 8.75
-  int32_t w = a & F_MASK;
-  int32_t e1 = mul32(le, C1 - w);
-  int32_t e2 = mul32(w, ue);
-  int32_t error = e1 + e2;
+  //no interpolation necessary
+  if (xModErrSc == 0 && yModErrSc == 0) {
+
+    error = (*errors)[li_x][li_y];
+  }
+  //only interpolate y
+  else if (xModErrSc == 0) {
+
+    int32_t q1, q2, y0, y1;
+    int ui_y = li_y + 1;
+
+    q1 = (*errors)[li_x][li_y];
+    q2 = (*errors)[li_x][ui_y];
+
+    if (y < 0) {
+      y1 = y - (y % ERR_SCALING);
+      y0 = y1 - ERR_SCALING;
+    } else {
+      y0 = y - (y % ERR_SCALING);
+      y1 = y0 + ERR_SCALING;
+    }
+
+    error = linearInterpolation(q1, q2, y0, y1, y);
+  }
+  //only interpolate x
+  else if (yModErrSc == 0) {
+
+    int32_t q1, q2, x0, x1;
+    int ui_x = li_x + 1;
+
+    q1 = (*errors)[li_x][li_y];
+    q2 = (*errors)[ui_x][li_y];
+
+    if (y < 0) {
+      x1 = x - (x % ERR_SCALING);
+      x0 = x1 - ERR_SCALING;
+    } else {
+      x0 = x - (x % ERR_SCALING);
+      x1 = x0 + ERR_SCALING;
+    }
+
+    error = linearInterpolation(q1, q2, x0, x1, x);
+  }
+  //bi-linear interpolation
+  else {
+
+    int32_t x0, x1, y0, y1, q11, q12, q21, q22;
+
+    int ui_x = li_x + 1;
+    int ui_y = li_y + 1;
+
+    if (x < 0) {
+      x1 = x - (x % ERR_SCALING);
+      x0 = x1 - ERR_SCALING;
+    } else {
+      x0 = x - (x % ERR_SCALING);
+      x1 = x0 + ERR_SCALING;
+    }
+    if (y < 0) {
+      y1 = y - (y % ERR_SCALING);
+      y0 = y1 - ERR_SCALING;
+    } else {
+      y0 = y - (y % ERR_SCALING);
+      y1 = y0 + ERR_SCALING;
+    }
+
+    q11 = (*errors)[li_x][li_y];
+    q12 = (*errors)[li_x][ui_y];
+    q21 = (*errors)[ui_x][li_y];
+    q22 = (*errors)[ui_x][ui_y];
+    error = bilinearInterpolation(q11, q12, q21, q22, x0, x1, y0, y1, x, y);
+  }
 
   returnValue = a - error;
 
   return returnValue;
 }
 
-int32_t applyXError(int32_t x) {
+int32_t applyXError(int32_t x, int32_t y) {
 
   int32_t returnValue;
-  x >= 0 ? returnValue = applyError(x, config.xMaxErrorCompensation) : returnValue = applyError(x, config.xMinErrorCompensation);
+  returnValue = applyError(x, x, y, &(config.xErrorCompensation));
 
   return returnValue;
 }
 
-int32_t applyYError(int32_t y) {
+int32_t applyYError(int32_t x, int32_t y) {
 
   int32_t returnValue;
-  y >= 0 ? returnValue = applyError(y, config.yMaxErrorCompensation) : returnValue = applyError(y, config.yMinErrorCompensation);
+  returnValue = applyError(y, x, y, &(config.yErrorCompensation));
 
   return returnValue;
 }
@@ -299,8 +376,8 @@ void handleNonPrintingMove(struct gCode* code) {
     int32_t x = float2Fixed(code->xCoord);
     int32_t y = float2Fixed(code->yCoord);
 
-    int32_t xe = applyXError(x);
-    int32_t ye = applyYError(y);
+    int32_t xe = applyXError(x, y);
+    int32_t ye = applyYError(x, y);
 
     int32_t xDigit = xyToAlphaDigit(xe, ye);
     int32_t yDigit = yToBetaDigit(ye);
@@ -330,15 +407,13 @@ void linearMoveHelper(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t st
 
   calcStart = micros();
 
-//uint32_t totalWaitTime = 0;
-//uint32_t start = calcStart;
-
   for (i = 0; i < fixed2Float(stepsPerSegment); i++) {
 
-    int32_t xDigit = xyToAlphaDigit(x0, y0);
-    int32_t yDigit = yToBetaDigit(y0);
+    int32_t xe = applyXError(x0, y0);
+    int32_t ye = applyYError(x0, y0);
 
-    //serialPrintln("%.5f\t%.5f\t%d", fixed2Float(x0), fixed2Float(y0), (oldXDigit != xDigit || oldYDigit != yDigit) ? 1 : 0);
+    int32_t xDigit = xyToAlphaDigit(xe, ye);
+    int32_t yDigit = yToBetaDigit(ye);
 
     if (oldXDigit != xDigit || oldYDigit != yDigit) {
 
@@ -361,10 +436,6 @@ void linearMoveHelper(int32_t x0, int32_t y0, int32_t x1, int32_t y1, int32_t st
     oldXDigit = xDigit;
     oldYDigit = yDigit;
   }
-
-//uint32_t total = calcStart - start;
-//serialPrintln("Iterations: %ld Total: %ldus Wait: %ldus Utilization: %.5f%%", i, total, totalWaitTime,
-//    100.0f - (float) totalWaitTime / (float) total * 100.0f);
 }
 
 void handleZMove(struct gCode* code) {
@@ -459,23 +530,14 @@ void laserIntensity(struct gCode* code) {
 
 void axisCompensation(struct gCode* code) {
 
-  if (code->sValue > -N_ERR_VALUES && code->sValue < N_ERR_VALUES) {
+  if (code->sValue >= -N_X_ERR_VALUES / 2 && code->sValue <= N_X_ERR_VALUES / 2 && code->pValue >= -N_Y_ERR_VALUES / 2 && code->pValue <= N_Y_ERR_VALUES / 2) {
 
-    if (code->xCoord != -FLT_MAX) {
-      if (code->sValue <= 0) {
-        config.xMinErrorCompensation[abs(code->sValue)] = float2Fixed(code->xCoord);
-      }
-      if (code->sValue >= 0) {
-        config.xMaxErrorCompensation[code->sValue] = float2Fixed(code->xCoord);
-      }
-    }
-    if (code->yCoord != -FLT_MAX) {
-      if (code->sValue <= 0) {
-        config.yMinErrorCompensation[abs(code->sValue)] = float2Fixed(code->yCoord);
-      }
-      if (code->sValue >= 0) {
-        config.yMaxErrorCompensation[code->sValue] = float2Fixed(code->yCoord);
-      }
+    int sValue = code->sValue + N_X_ERR_VALUES / 2;
+    int pValue = code->pValue + N_Y_ERR_VALUES / 2;
+
+    if (code->xCoord != -FLT_MAX && code->yCoord != -FLT_MAX) {
+      config.xErrorCompensation[sValue][pValue] = float2Fixed(code->xCoord);
+      config.yErrorCompensation[sValue][pValue] = float2Fixed(code->yCoord);
     }
   }
 }
@@ -517,6 +579,7 @@ void setAxisDimensions(struct gCode* code) {
   }
 
   axisDimensionsChanged();
+  calculatePointCloudCoordinates();
 }
 
 void setLineSegmentation(struct gCode* code) {
@@ -548,5 +611,94 @@ void setDipping(struct gCode* code) {
   }
   if (code->sValue != INT_MIN) {
     config.dipTime = code->sValue;
+  }
+}
+
+int32_t xCoords[N_X_ERR_VALUES][N_Y_ERR_VALUES];
+int32_t yCoords[N_X_ERR_VALUES][N_Y_ERR_VALUES];
+
+void calculatePointCloudCoordinates() {
+
+  int i, j;
+  for (i = 0; i < N_X_ERR_VALUES; i++) {
+    for (j = 0; j < N_Y_ERR_VALUES; j++) {
+      int32_t x = mul32(float2Fixed(i - (N_X_ERR_VALUES / 2)), ERR_SCALING);
+      int32_t y = mul32(float2Fixed(j - (N_Y_ERR_VALUES / 2)), ERR_SCALING);
+
+      xCoords[i][j] = x;
+      yCoords[i][j] = y;
+    }
+  }
+}
+
+void renderPointCloud() {
+
+  //store pos of origin
+  int32_t xStart = oldX, yStart = oldY;
+
+  //go to first point
+  pTmpCode->code = G0;
+  pTmpCode->gCodeCharacter = 'G';
+  pTmpCode->gCodeDigit = 0;
+  pTmpCode->xCoord = fixed2Float(xCoords[0][0]);
+  pTmpCode->yCoord = fixed2Float(yCoords[0][0]);
+  pTmpCode->sValue = INT_MIN;
+
+  handleNonPrintingMove(&tmpCode);
+
+  int i, j = 0, dj = 1;
+  for (i = 0; i < N_X_ERR_VALUES * N_X_ERR_VALUES; i++) {
+
+    int32_t x = xCoords[i / N_X_ERR_VALUES][j];
+    int32_t y = yCoords[i / N_X_ERR_VALUES][j];
+
+    int32_t xe, ye;
+
+    if (pointCloudErrorCompensation) {
+      xe = applyXError(x, y);
+      ye = applyYError(x, y);
+    } else {
+      xe = x;
+      ye = y;
+    }
+
+    //go to current point
+    int32_t xDigit = xyToAlphaDigit(xe, ye);
+    int32_t yDigit = yToBetaDigit(ye);
+    changeMotorValues(xDigit, yDigit);
+
+    //enable laser
+    changeLaserValue(laser_intensity);
+    //wait
+    delay(10);
+    //disable laser
+    changeLaserValue(0);
+
+    oldX = x;
+    oldY = y;
+    oldXDigit = xDigit;
+    oldYDigit = yDigit;
+
+    if (i % N_X_ERR_VALUES == N_X_ERR_VALUES - 1) {
+      dj = -dj;
+    } else {
+      j += dj;
+    }
+  }
+
+  //go back to origin
+  pTmpCode->code = G0;
+  pTmpCode->xCoord = fixed2Float(xStart);
+  pTmpCode->yCoord = fixed2Float(yStart);
+  handleNonPrintingMove(pTmpCode);
+
+  delay(100);
+}
+
+void pCloudErrCompensation(struct gCode* code) {
+  if (code->sValue == 1 && code->pValue == 1) {
+    pointCloudErrorCompensation = true;
+  } else {
+    pointCloudErrorCompensation = false;
   }
 }

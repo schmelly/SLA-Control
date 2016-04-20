@@ -55,10 +55,8 @@ void loadDefaultValues() {
   config.dipTime = DIP_TIME;
   config.exposureTime = EXPOSURE_TIME;
   config.settleTime = SETTLE_TIME;
-  memset(config.xMinErrorCompensation, 0, sizeof(int32_t) * 10);
-  memset(config.xMaxErrorCompensation, 0, sizeof(int32_t) * 10);
-  memset(config.yMinErrorCompensation, 0, sizeof(int32_t) * 10);
-  memset(config.yMaxErrorCompensation, 0, sizeof(int32_t) * 10);
+  memset(config.xErrorCompensation, 0, sizeof(int32_t) * N_X_ERR_VALUES * N_Y_ERR_VALUES);
+  memset(config.yErrorCompensation, 0, sizeof(int32_t) * N_X_ERR_VALUES * N_Y_ERR_VALUES);
 }
 
 void storeDefaultValues() {
@@ -83,31 +81,15 @@ void printLoadedParams() {
   serialPrintln("dipDepth: %.4f\ndipTime: %ld\nexposureTime: %ld\nsettleTime: %ld", //
       config.dipDepth, config.dipTime, config.exposureTime, config.settleTime);
 
-  int i;
+  int i, j;
 
-  serialPrint("xMinErrors: ");
-  for (int i = 0; i < N_ERR_VALUES; i++) {
-    serialPrint("%.2f ", fixed2Float(config.xMinErrorCompensation[i]));
+  serialPrintln("error values: ");
+  for (i = 0; i < N_X_ERR_VALUES; i++) {
+    for (j = 0; j < N_Y_ERR_VALUES; j++) {
+      serialPrint("(%.2f,%.2f) ", fixed2Float(config.xErrorCompensation[i][j]), fixed2Float(config.yErrorCompensation[i][j]));
+    }
+    serialPrintln(" ");
   }
-  serialPrintln(" ");
-
-  serialPrint("xMaxErrors: ");
-  for (i = 0; i < N_ERR_VALUES; i++) {
-    serialPrint("%.2f ", fixed2Float(config.xMaxErrorCompensation[i]));
-  }
-  serialPrintln(" ");
-
-  serialPrint("yMinErrors: ");
-  for (i = 0; i < N_ERR_VALUES; i++) {
-    serialPrint("%.2f ", fixed2Float(config.yMinErrorCompensation[i]));
-  }
-  serialPrintln(" ");
-
-  serialPrint("yMaxErrors: ");
-  for (i = 0; i < N_ERR_VALUES; i++) {
-    serialPrint("%.2f ", fixed2Float(config.yMaxErrorCompensation[i]));
-  }
-  serialPrintln(" ");
 }
 
 #ifdef __cplusplus

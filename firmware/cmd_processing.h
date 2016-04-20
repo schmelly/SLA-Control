@@ -17,6 +17,7 @@ extern "C" {
 
 void setupCommandProcessing();
 void processCommand(struct gCode* code);
+void renderPointCloud();
 
 #ifdef __cplusplus
 }

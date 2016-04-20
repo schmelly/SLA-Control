@@ -11,7 +11,7 @@
 #include "cmd_processing.h"
 
 enum states {
-  INITIAL, IDLE, POLLING_CMD, PROCESSING_CMD
+  INITIAL, IDLE, POLLING_CMD, PROCESSING_CMD, RENDERING_POINTCLOUD
 };
 
 enum states current_state;
@@ -20,6 +20,8 @@ void atInitial();
 void atIdle();
 void atPollingCmd();
 void atProcessingCmd();
+
+bool renderingPointCloud = false;
 
 void setupStateHandling() {
 
@@ -56,6 +58,10 @@ void atInitial() {
 void atIdle() {
   //Serial.println("atIdle");
   current_state = POLLING_CMD;
+
+  if (renderingPointCloud) {
+    renderPointCloud();
+  }
 }
 
 void atPollingCmd() {
@@ -72,4 +78,12 @@ void atProcessingCmd() {
   current_state = IDLE;
   gCode* code = getParsedGCode();
   processCommand(code);
+
+  if (code->code == M710) {
+    if (code->sValue == 1) {
+      renderingPointCloud = true;
+    } else {
+      renderingPointCloud = false;
+    }
+  }
 }
